@@ -8,7 +8,9 @@
   },
   "scripts": {
     "tsc:watch": "tsc --watch",
+    "build": "tsc",
     "fmt": "prettier --write .",
+    "fmt:ci": "prettier --check --loglevel debug .",
     "start": "node -r ./gateway/dist/dotenv.js gateway/dist/index.js",
     "dev": "nodemon --ext js,graphql --no-update-notifier --watch rover/supergraphs --watch gateway/dist --exec \"node -r ./gateway/dist/dotenv.js gateway/dist/index.js\"",
     "supergraph:watch": "nodemon --ext graphql,yaml --no-update-notifier --watch rover/subgraphs --watch rover/config --exec \"yarn supergraph:dev\"",
