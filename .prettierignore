@@ -1,2 +1,3 @@
 /rover/**/*.graphql
 /gateway/dist/
+/charts/*/templates/**/*.yaml
