@@ -17,7 +17,7 @@ jobs:
         with:
           node-version: "16"
           cache: "yarn"
-      - run: yarn install --frozen-lockfile
+      - run: yarn install --frozen-lockfile --prefer-offline
       - name: Prettier
         run: yarn fmt:ci
   build:
@@ -28,7 +28,7 @@ jobs:
         with:
           node-version: "16"
           cache: "yarn"
-      - run: yarn install --frozen-lockfile
+      - run: yarn install --frozen-lockfile --prefer-offline
       - name: Build folder does not exist
         run: test ! -d gateway/dist
       - name: Build
