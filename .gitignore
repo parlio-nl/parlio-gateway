@@ -1,0 +1,5 @@
+/.idea/
+/*.iml
+/yarn-error.log
+/node_modules/
+/gateway/dist/
