@@ -121,7 +121,7 @@ const server = new ApolloServer({
   server.applyMiddleware({
     app,
     cors: {
-      allowedHeaders: [
+      methods: [
         "OPTIONS", // OPTIONS is required because of fetch
         "POST",
         "GET",
