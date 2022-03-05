@@ -7,6 +7,7 @@ This is the [GraphQL gateway](https://www.apollographql.com/docs/federation/gate
 The diagram below illustrates the environment in which the gateway operates.
 
 ```mermaid
+%%{init: {'theme':'base'}}%%
 flowchart LR
   F(Frontend/Client)-->|HTTP| G{Gateway}
   subgraph S [Services]
