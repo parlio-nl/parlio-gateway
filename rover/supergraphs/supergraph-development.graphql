@@ -25,11 +25,11 @@ interface ChangeEntry
 enum ChangeEntryKey
   @join__type(graph: TWEEDE_KAMER)
 {
-  PERSON_DATE_OF_BIRTH
-  PERSON_FAMILY_NAME
-  PERSON_FIRST_NAME
-  PERSON_INITIALS
   PERSON_SLUG
+  PERSON_FIRST_NAME
+  PERSON_FAMILY_NAME
+  PERSON_INITIALS
+  PERSON_DATE_OF_BIRTH
 }
 
 interface ChangeEvent implements Node
@@ -37,7 +37,6 @@ interface ChangeEvent implements Node
   @join__type(graph: TWEEDE_KAMER)
 {
   id: ID!
-  log: [ChangeEntry!]!
 
   """
   Operation identifier for this event type.
@@ -46,6 +45,14 @@ interface ChangeEvent implements Node
   ^[A-Za-z0-9](?:[A-Za-z0-9]|[A-Za-z0-9_][A-Za-z0-9])*(?:\.[A-Za-z0-9](?:[A-Za-z0-9]|[A-Za-z0-9_][A-Za-z0-9])*)* (DOLLAR SIGN)
   """
   op: String!
+  changes: [ChangeEntry!]!
+}
+
+enum ChangeEventType
+  @join__type(graph: TWEEDE_KAMER)
+{
+  SYNC_FEED_UPDATE
+  GENERIC
 }
 
 enum core__Purpose {
@@ -68,26 +75,14 @@ enum ErrorDetail
   @join__type(graph: TWEEDE_KAMER)
 {
   """
-  The deadline expired before the operation could complete.
+  Unknown error.
   
-  For operations that change the state of the system, this error
-  may be returned even if the operation has completed successfully.
-  For example, a successful response from a server could have been
-  delayed long enough for the deadline to expire.
+  This error should only be returned when no other error detail applies.
+  If a client sees an unknown errorDetail, it will be interpreted as UNKNOWN.
   
-  HTTP Mapping: 504 Gateway Timeout
-  Error Type: UNAVAILABLE
+  HTTP Mapping: 500 Internal Server Error
   """
-  DEADLINE_EXCEEDED
-
-  """
-  The server detected that the client is exhibiting a behavior that
-  might be generating excessive load.
-  
-  HTTP Mapping: 429 Too Many Requests or 420 Enhance Your Calm
-  Error Type: UNAVAILABLE
-  """
-  ENHANCE_YOUR_CALM
+  UNKNOWN
 
   """
   The requested field is not found in the schema.
@@ -106,18 +101,6 @@ enum ErrorDetail
   FIELD_NOT_FOUND
 
   """
-  The client specified an invalid argument.
-  
-  Note that this differs from `FAILED_PRECONDITION`.
-  `INVALID_ARGUMENT` indicates arguments that are problematic
-  regardless of the state of the system (e.g., a malformed file name).
-  
-  HTTP Mapping: 400 Bad Request
-  Error Type: BAD_REQUEST
-  """
-  INVALID_ARGUMENT
-
-  """
   The provided cursor is not valid.
   
   The most common usage for this error is when a client is paginating
@@ -130,20 +113,37 @@ enum ErrorDetail
   INVALID_CURSOR
 
   """
-  Unable to perform operation because a required resource is missing.
+  The operation is not implemented or is not currently supported/enabled.
   
-  Example: Client is attempting to refresh a list, but the specified
-  list is expired. This requires an action by the client to get a new list.
-  
-  If the user is simply trying GET a resource that is not found,
-  use the NOT_FOUND error type. FAILED_PRECONDITION.MISSING_RESOURCE
-  is to be used particularly when the user is performing an operation
-  that requires a particular resource to exist.
-  
-  HTTP Mapping: 400 Bad Request or 500 Internal Server Error
-  Error Type: FAILED_PRECONDITION
+  HTTP Mapping: 501 Not Implemented
+  Error Type: BAD_REQUEST
   """
-  MISSING_RESOURCE
+  UNIMPLEMENTED
+
+  """
+  The client specified an invalid argument.
+  
+  Note that this differs from `FAILED_PRECONDITION`.
+  `INVALID_ARGUMENT` indicates arguments that are problematic
+  regardless of the state of the system (e.g., a malformed file name).
+  
+  HTTP Mapping: 400 Bad Request
+  Error Type: BAD_REQUEST
+  """
+  INVALID_ARGUMENT
+
+  """
+  The deadline expired before the operation could complete.
+  
+  For operations that change the state of the system, this error
+  may be returned even if the operation has completed successfully.
+  For example, a successful response from a server could have been
+  delayed long enough for the deadline to expire.
+  
+  HTTP Mapping: 504 Gateway Timeout
+  Error Type: UNAVAILABLE
+  """
+  DEADLINE_EXCEEDED
 
   """
   Service Error.
@@ -163,12 +163,12 @@ enum ErrorDetail
   SERVICE_ERROR
 
   """
-  Request failed due to network errors.
+  Request throttled based on server CPU limits
   
-  HTTP Mapping: 503 Unavailable
+  HTTP Mapping: 503 Unavailable.
   Error Type: UNAVAILABLE
   """
-  TCP_FAILURE
+  THROTTLED_CPU
 
   """
   Request throttled based on server concurrency limits.
@@ -179,65 +179,60 @@ enum ErrorDetail
   THROTTLED_CONCURRENCY
 
   """
-  Request throttled based on server CPU limits
+  The server detected that the client is exhibiting a behavior that
+  might be generating excessive load.
   
-  HTTP Mapping: 503 Unavailable.
+  HTTP Mapping: 429 Too Many Requests or 420 Enhance Your Calm
   Error Type: UNAVAILABLE
   """
-  THROTTLED_CPU
+  ENHANCE_YOUR_CALM
 
   """
-  The operation is not implemented or is not currently supported/enabled.
+  Request failed due to network errors.
   
-  HTTP Mapping: 501 Not Implemented
-  Error Type: BAD_REQUEST
+  HTTP Mapping: 503 Unavailable
+  Error Type: UNAVAILABLE
   """
-  UNIMPLEMENTED
+  TCP_FAILURE
 
   """
-  Unknown error.
+  Unable to perform operation because a required resource is missing.
   
-  This error should only be returned when no other error detail applies.
-  If a client sees an unknown errorDetail, it will be interpreted as UNKNOWN.
+  Example: Client is attempting to refresh a list, but the specified
+  list is expired. This requires an action by the client to get a new list.
   
-  HTTP Mapping: 500 Internal Server Error
+  If the user is simply trying GET a resource that is not found,
+  use the NOT_FOUND error type. FAILED_PRECONDITION.MISSING_RESOURCE
+  is to be used particularly when the user is performing an operation
+  that requires a particular resource to exist.
+  
+  HTTP Mapping: 400 Bad Request or 500 Internal Server Error
+  Error Type: FAILED_PRECONDITION
   """
-  UNKNOWN
+  MISSING_RESOURCE
 }
 
 enum ErrorType
   @join__type(graph: TWEEDE_KAMER)
 {
   """
-  Bad Request.
+  Unknown error.
   
-  There is a problem with the request.
-  Retrying the same request is not likely to succeed.
-  An example would be a query or argument that cannot be deserialized.
+  For example, this error may be returned when
+  an error code received from another address space belongs to
+  an error space that is not known in this address space.  Also
+  errors raised by APIs that do not return enough error information
+  may be converted to this error.
   
-  HTTP Mapping: 400 Bad Request
+  If a client sees an unknown errorType, it will be interpreted as UNKNOWN.
+  Unknown errors MUST NOT trigger any special behavior. These MAY be treated
+  by an implementation as being equivalent to INTERNAL.
+  
+  When possible, a more specific error should be provided.
+  
+  HTTP Mapping: 520 Unknown Error
   """
-  BAD_REQUEST
-
-  """
-  The operation was rejected because the system is not in a state
-  required for the operation's execution.  For example, the directory
-  to be deleted is non-empty, an rmdir operation is applied to
-  a non-directory, etc.
-  
-  Service implementers can use the following guidelines to decide
-  between `FAILED_PRECONDITION` and `UNAVAILABLE`:
-  
-  - Use `UNAVAILABLE` if the client can retry just the failing call.
-  - Use `FAILED_PRECONDITION` if the client should not retry until
-  the system state has been explicitly fixed.  E.g., if an "rmdir"
-  fails because the directory is non-empty, `FAILED_PRECONDITION`
-  should be returned since the client should not retry unless
-  the files are deleted from the directory.
-  
-  HTTP Mapping: 400 Bad Request or 500 Internal Server Error
-  """
-  FAILED_PRECONDITION
+  UNKNOWN
 
   """
   Internal error.
@@ -267,6 +262,16 @@ enum ErrorType
   NOT_FOUND
 
   """
+  The request does not have valid authentication credentials.
+  
+  This is intended to be returned only for routes that require
+  authentication.
+  
+  HTTP Mapping: 401 Unauthorized
+  """
+  UNAUTHENTICATED
+
+  """
   The caller does not have permission to execute the specified
   operation.
   
@@ -285,14 +290,15 @@ enum ErrorType
   PERMISSION_DENIED
 
   """
-  The request does not have valid authentication credentials.
+  Bad Request.
   
-  This is intended to be returned only for routes that require
-  authentication.
+  There is a problem with the request.
+  Retrying the same request is not likely to succeed.
+  An example would be a query or argument that cannot be deserialized.
   
-  HTTP Mapping: 401 Unauthorized
+  HTTP Mapping: 400 Bad Request
   """
-  UNAUTHENTICATED
+  BAD_REQUEST
 
   """
   Currently Unavailable.
@@ -306,23 +312,24 @@ enum ErrorType
   UNAVAILABLE
 
   """
-  Unknown error.
+  The operation was rejected because the system is not in a state
+  required for the operation's execution.  For example, the directory
+  to be deleted is non-empty, an rmdir operation is applied to
+  a non-directory, etc.
   
-  For example, this error may be returned when
-  an error code received from another address space belongs to
-  an error space that is not known in this address space.  Also
-  errors raised by APIs that do not return enough error information
-  may be converted to this error.
+  Service implementers can use the following guidelines to decide
+  between `FAILED_PRECONDITION` and `UNAVAILABLE`:
   
-  If a client sees an unknown errorType, it will be interpreted as UNKNOWN.
-  Unknown errors MUST NOT trigger any special behavior. These MAY be treated
-  by an implementation as being equivalent to INTERNAL.
+  - Use `UNAVAILABLE` if the client can retry just the failing call.
+  - Use `FAILED_PRECONDITION` if the client should not retry until
+  the system state has been explicitly fixed.  E.g., if an "rmdir"
+       fails because the directory is non-empty, `FAILED_PRECONDITION`
+  should be returned since the client should not retry unless
+  the files are deleted from the directory.
   
-  When possible, a more specific error should be provided.
-  
-  HTTP Mapping: 520 Unknown Error
+  HTTP Mapping: 400 Bad Request or 500 Internal Server Error
   """
-  UNKNOWN
+  FAILED_PRECONDITION
 }
 
 type GenericChangeEvent implements ChangeEvent & Node
@@ -331,8 +338,8 @@ type GenericChangeEvent implements ChangeEvent & Node
   @join__type(graph: TWEEDE_KAMER)
 {
   id: ID!
-  log: [ChangeEntry!]!
   op: String!
+  changes: [ChangeEntry!]!
 }
 
 scalar join__FieldSet
@@ -350,23 +357,24 @@ interface Node
 type PageInfo
   @join__type(graph: TWEEDE_KAMER)
 {
-  endCursor: String
-  hasNextPage: Boolean!
   hasPreviousPage: Boolean!
+  hasNextPage: Boolean!
   startCursor: String
+  endCursor: String
 }
 
 type Person implements Node
   @join__implements(graph: TWEEDE_KAMER, interface: "Node")
   @join__type(graph: TWEEDE_KAMER)
 {
-  changeHistory: [ChangeEvent!]!
-  familyName: String!
-  firstName: String!
-  gifts(after: String, before: String, first: Int, last: Int): PersonGiftConnection!
   id: ID!
-  nameInitials: String!
   slug: String!
+  displayName: String
+  firstName: String
+  familyName: String
+  nameInitials: String
+  changeHistory: [ChangeEvent!]!
+  gifts(after: String, before: String, first: Int, last: Int): PersonGiftConnection!
   trips(after: String, before: String, first: Int, last: Int): PersonTripConnection!
 }
 
@@ -376,9 +384,9 @@ interface PersonChangeEvent implements ChangeEvent & Node
   @join__type(graph: TWEEDE_KAMER)
 {
   id: ID!
-  log: [ChangeEntry!]!
-  op: String!
   person: Person!
+  op: String!
+  changes: [ChangeEntry!]!
 }
 
 type PersonConnection
@@ -399,10 +407,10 @@ type PersonGift implements Node
   @join__implements(graph: TWEEDE_KAMER, interface: "Node")
   @join__type(graph: TWEEDE_KAMER)
 {
-  changeHistory: [ChangeEvent!]!
-  date: Date
-  description: String
   id: ID!
+  description: String
+  date: Date
+  changeHistory: [ChangeEvent!]!
 }
 
 type PersonGiftConnection
@@ -419,29 +427,29 @@ type PersonGiftEdge
   node: PersonGift
 }
 
-type PersonSyncFeedUpdateEvent implements ChangeEvent & Node & PersonChangeEvent
+type PersonSyncFeedUpdateEvent implements PersonChangeEvent & ChangeEvent & Node
+  @join__implements(graph: TWEEDE_KAMER, interface: "PersonChangeEvent")
   @join__implements(graph: TWEEDE_KAMER, interface: "ChangeEvent")
   @join__implements(graph: TWEEDE_KAMER, interface: "Node")
-  @join__implements(graph: TWEEDE_KAMER, interface: "PersonChangeEvent")
   @join__type(graph: TWEEDE_KAMER)
 {
   id: ID!
-  log: [ChangeEntry!]!
-  op: String!
   person: Person!
+  op: String!
+  changes: [ChangeEntry!]!
 }
 
 type PersonTrip implements Node
   @join__implements(graph: TWEEDE_KAMER, interface: "Node")
   @join__type(graph: TWEEDE_KAMER)
 {
-  changeHistory: [ChangeEvent!]!
+  id: ID!
   destination: String
   endDate: Date
-  id: ID!
   paidBy: String
   purpose: String
   startDate: Date
+  changeHistory: [ChangeEvent!]!
 }
 
 type PersonTripConnection
@@ -483,11 +491,12 @@ type Query
   @join__type(graph: TWEEDE_KAMER)
 {
   echo(msg: String!): String!
+  people(after: String, before: String, first: Int, last: Int): PersonConnection!
+  rawPerson(rawId: String!): Person
 
   """ TODO Remove"""
   node(id: ID!): Node
-  people(after: String, before: String, first: Int, last: Int): PersonConnection!
-  rawPerson(rawId: String!): Person
+  person(slug: String!): Person
 }
 
 type StringChangeEntry implements ChangeEntry
@@ -495,6 +504,6 @@ type StringChangeEntry implements ChangeEntry
   @join__type(graph: TWEEDE_KAMER)
 {
   key: ChangeEntryKey!
-  newValue: String
   oldValue: String
+  newValue: String
 }
