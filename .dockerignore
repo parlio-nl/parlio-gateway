@@ -1,0 +1,11 @@
+*
+
+!package.json
+!yarn.lock
+
+!tsconfig.json
+
+!gateway/
+gateway/dist/
+
+!rover/supergraphs/supergraph-production.graphql

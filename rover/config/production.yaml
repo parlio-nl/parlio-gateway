@@ -1,0 +1,5 @@
+subgraphs:
+  tweede-kamer:
+    routing_url: http://localhost:8080/graphql
+    schema:
+      file: ./../subgraphs/parlio-tweede-kamer.graphql
