@@ -34,4 +34,4 @@ COPY --chown=node:node --from=deps /app/node_modules/ ./node_modules/
 COPY --chown=node:node --from=build /app/gateway/dist/*.js ./gateway/dist/
 COPY --chown=node:node rover/supergraphs/supergraph-production.graphql ./rover/supergraphs/supergraph-production.graphql
 
-CMD ["dumb-init", "node", "-r", "./gateway/dist/dotenv.js" , "gateway/dist/index.js"]
+CMD ["dumb-init", "node", "-r", "./gateway/dist/dotenv_r.js" , "gateway/dist/index.js"]

@@ -63,7 +63,7 @@ if (exposeQueryPlan) {
   );
 }
 
-type RequestContext = {
+type ParlioGatewayRequestContext = {
   auth: string | undefined;
 };
 
@@ -79,7 +79,9 @@ const gateway = new ApolloGateway({
     return new RemoteGraphQLDataSource({
       url,
       willSendRequest(gatewayRequest) {
-        const context: RequestContext = <RequestContext>gatewayRequest.context;
+        const context: ParlioGatewayRequestContext = <
+          ParlioGatewayRequestContext
+        >gatewayRequest.context;
         const auth = context.auth;
         if (auth) {
           gatewayRequest.request.http?.headers.set("Authorization", auth);
@@ -107,7 +109,7 @@ const server = new ApolloServer({
     ApolloServerPluginDrainHttpServer({ httpServer }),
     ApolloServerPluginLandingPageDisabled(), // No landing page
   ],
-  context: ({ req }): RequestContext => {
+  context: ({ req }): ParlioGatewayRequestContext => {
     const auth = req.headers.authorization;
     return {
       auth,
