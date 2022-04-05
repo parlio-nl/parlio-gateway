@@ -9,7 +9,7 @@
   },
   "scripts": {
     "tsc:watch": "tsc --watch --skipLibCheck",
-    "build": "tsc",
+    "build": "tsc --skipLibCheck",
     "fmt": "prettier --write .",
     "fmt:ci": "prettier --check --loglevel debug .",
     "start": "node -r ./gateway/dist/dotenv_r.js gateway/dist/index.js",
